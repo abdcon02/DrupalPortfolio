@@ -1,0 +1,107 @@
+<?php
+
+function cipher_menu(){
+    $items = array();
+    $items['encryption_form'] = array(
+        'title' => 'Encryption Form',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('cipher_form'),
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+    $items['encryption_success'] = array(
+        'title' => 'Encryption Success',
+        'page callback' => 'cipher_result',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+    return $items;
+}
+
+function cipher_form(){
+// Trying out select and options in a form
+    $options = array();
+    $options['right'] = 'right';
+    $options['left'] = 'left';
+
+    $form = array();
+    $form['shift_value'] = [
+        '#title' => 'Shift Value',
+        '#type' => 'textfield',
+        '#description' => t('The shift value is the number of places to shift each letter along the alphebet. It must be a number.'),
+        '#element_validate' => array('element_validate_integer_positive'),
+        '#required' => TRUE,
+    ];
+    $form['direction'] = [
+        '#title' => 'Direction',
+        '#type' => 'select',
+        '#options' => $options,
+        '#description' => t('The shift direction can be "right" or "left" and is the direction the cipher moves in.'),
+        '#required' => TRUE,
+    ];
+    $form['phrase'] = [
+        '#title' => 'Phrase',
+        '#type' => 'textfield',
+        '#description' => t('The Phrase is your text to be encrypted. It must only be letters and punctuation'),
+        '#element_validate' => array('element_validate_string_or_character'),
+        '#required' => TRUE,
+    ];
+    $form['submit'] = [
+        '#type' => 'submit',
+        '#value' => 'Encrypt',
+    ];
+    return $form;
+}
+
+// custom validation function using regular expression to check for letters, spaces, punctuation.
+function element_validate_string_or_character($element){
+    if(preg_match("/[^a-z\p{P} ]/i", $element['#value'])){
+        form_error($element, t('The Phrase can only contain letters, spaces, and punctuation.'));
+    }
+}
+
+// I chose to encrypt the information in the submit because it did not
+// feel right to pass the un-encrypted variables into the session.
+function cipher_form_submit($form, &$form_state){
+    $shift_value = $form_state['values']['shift_value'];
+    $direction = $form_state['values']['direction'];
+    $phrase = $form_state['values']['phrase'];
+// Sterilize the inputs
+    $phrase = strtolower($phrase);
+    $shift_value = $shift_value % 26;
+// Create an array with a numerical key for each letter
+    $alpha = range('a','z');
+
+    $phrase_array = str_split($phrase);
+
+    foreach($phrase_array as $key => $character) {
+        $alpha_key = array_search($character, $alpha);
+        $shift_key;
+
+// add if direction is right, else direction is left and subtract shift value
+// nested if/elses take care of the looping alphabet
+        if($direction == 'right') {
+            $shift_key = $alpha_key + $shift_value;
+            if($shift_key > 25) {
+                $shift_key -= 26;
+            }
+        } else {
+            $shift_key = $alpha_key - $shift_value;
+            if($shift_key < 0) {
+                $shift_key += 26;
+            }
+        }
+// and shift each letter to encrypt it if a letter
+        if(preg_match("/[a-z]/", $character)) {
+            $phrase_array[$key] = $alpha[$shift_key];
+        }
+    }
+    $phrase = implode("", $phrase_array);
+    $_SESSION['result'] = $phrase;
+    $form_state['redirect'] = 'encryption_success';
+}
+
+function cipher_result(){
+    $result = $_SESSION['result'];
+    return '<h3> Your Encrypted phrase is: ' . $result . '</h3>';
+}
