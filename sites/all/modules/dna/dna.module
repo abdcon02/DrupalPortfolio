@@ -1,0 +1,102 @@
+<?php
+
+/*
+ * dna form create menu item leading to url: dnaform with the dna_form
+ * dna_results is a callback from the form state redirection after the form submition
+*/
+
+function dna_menu(){
+    $items['dnaform'] = array(
+        'title' => 'DNA Form',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('dna_form'),
+        'access callback' => TRUE,
+        'type' => MENU_NORMAL_ITEM,
+    );
+    $items['dna_results'] = array(
+        'title' => 'Matching Sequence',
+        'page callback' => 'results',
+        'access callback' => TRUE,
+        'type' => MENU_CALLBACK,
+    );
+    return $items;
+}
+
+/*
+ * dna_form creates a single form with 1 input for entering nucleotides
+*/
+
+function dna_form(){
+    $form['dna_input'] = [
+        '#title' => 'Nucleotide input',
+        '#type' => 'textfield',
+        '#description' => t('Enter nucleotides you would like paired'),
+        '#element_validate' => array('element_validate_nucleotide'),
+        '#required' => TRUE,
+    ];
+    $form['submit'] = [
+        '#type' => 'submit',
+        '#value' => 'Submit',
+    ];
+    return $form;
+}
+
+/*
+ * validation function attached to form taking the element as an argument and returning error message if
+ * validation is not met
+*/
+
+function element_validate_nucleotide($element){
+    if(preg_match("/[^atcg ]/i", $element['#value'])){
+        form_error($element, t('The Input can only contain the letters: A,T,C,G, and spaces'));
+    }
+}
+
+/*
+ * on form submition, function stores form input in session variable and redirects callback page
+*/
+
+function dna_form_submit($form, &$form_state){
+    $_SESSION['dna'] = $form_state['values']['dna_input'];
+    $form_state['redirect'] = 'dna_results';
+}
+
+/*
+ * displays results on callback page dna_results
+*/
+
+function results(){
+    $input = $_SESSION['dna'];
+    $result = pair_dna($input);
+
+    return "<p> Your DNA input was: $input </br> Your DNA sequence is: $result</p>";
+}
+
+/*
+ * function takes input and calculates nucleotide pairs, returning them in a string
+*/
+
+function pair_dna($variable){
+    $variable = strtoupper($variable);
+    $length = strlen($variable);
+    $result = '';
+
+    for($i = 0 ; $i < $length ; $i++){
+        if ($i > 0 && $i < $length) {
+            $result .= ', ';
+        }
+        if($variable[$i] == 'A') {
+            $result .= 'A-T';
+        }
+        if($variable[$i] == 'T') {
+            $result .= 'T-A';
+        }
+        if($variable[$i] == 'C') {
+            $result .= 'C-G';
+        }
+        if($variable[$i] == 'G'){
+            $result .= 'G-C';
+        }
+    }
+    return $result;
+}
