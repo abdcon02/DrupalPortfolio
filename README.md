@@ -24,6 +24,8 @@ Themes
 
 ######Find out more about Drupal in the file: [README.txt](README.txt)
 
+######View a live version at [Live](http://dev-connors-portfolio.pantheon.io/)
+
 ####Access:
 DB Name: portfolio</br>
 DB User: Connor</br>
